@@ -1,0 +1,10 @@
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/TestMain.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/EventAspect.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/FooServiceImpl.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/MyTransactionEvent.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/MybatisXmlConfig.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/model/Employee.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/Event.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/TestConfiguration.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/dao/EmployeeNoAnnotationMapper.java
+/Users/yan/Documents/code/spring-demo/spring-mybatis-xml-demo/src/main/java/beans/MyTransactionListener.java

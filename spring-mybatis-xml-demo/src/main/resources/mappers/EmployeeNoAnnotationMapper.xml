@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="beans.dao.EmployeeNoAnnotationMapper">
+    <!--
+    namespace:名称空间;指定为接口的全类名
+    id：唯一标识
+    resultType：返回值类型
+    #{id}：从传递过来的参数中取出id值
+
+    public com.Employee getEmpById(Integer id);
+     -->
+    <select id="getEmpById" resultType="model.Employee">
+        select id, name, state, age from a where id = #{id}
+    </select>
+
+    <insert id="insert" >
+        insert into a(name) value(#{employee.name})
+    </insert>
+
+    <update id="update" >
+        update a set a.name = #{employee.name} where a.id = #{employee.id}
+    </update>
+</mapper>
