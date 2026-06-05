@@ -20,6 +20,7 @@
 		<module>spring-mybatis-annotation-demo</module>
         <module>baseEntity</module>
         <module>ddc-client</module>
+        <module>ddc-test</module>
     </modules>
 
 	<dependencies>

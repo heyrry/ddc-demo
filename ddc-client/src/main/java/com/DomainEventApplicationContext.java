@@ -1,6 +1,8 @@
 package com;
 
 import com.annotation.EventListen;
+import com.compensate.DdcCompensateService;
+import com.compensate.DdcCompensateServiceImpl;
 import com.listen.support.DomainEventListenSupport;
 import com.notify.DomainEventNotifyDTO;
 import com.notify.DomainEventNotifyLifecycle;
@@ -32,6 +34,7 @@ public class DomainEventApplicationContext implements ApplicationContextAware {
 
     private static DomainEventApplicationContext instance;
     private DomainEventLifecycle<DomainEventNotifyDTO> domainEventNotifyLifecycle;
+    private DdcCompensateService ddcCompensateService;
 
     public static DomainEventApplicationContext getInstance() {
         return instance;
@@ -47,6 +50,7 @@ public class DomainEventApplicationContext implements ApplicationContextAware {
                 log.info("DomainEventApplicationContext init begin");
                 initDomainEventLifecycle();
                 initEventListenService();
+                initCompensateService();
                 instance = this;
             }
         }
@@ -57,6 +61,10 @@ public class DomainEventApplicationContext implements ApplicationContextAware {
         registerDomainEventListen();
         //初始化服务
         DomainEventListenSupport.initDomainEventListenService(dataSource);
+    }
+
+    private void initCompensateService() {
+        ddcCompensateService = new DdcCompensateServiceImpl(dataSource);
     }
 
     private void registerDomainEventListen() {
@@ -98,6 +106,10 @@ public class DomainEventApplicationContext implements ApplicationContextAware {
 
     public DomainEventLifecycle<DomainEventNotifyDTO> getDomainEventNotifyLifecycle() {
         return domainEventNotifyLifecycle;
+    }
+
+    public DdcCompensateService getDdcCompensateService() {
+        return ddcCompensateService;
     }
 
     @Override

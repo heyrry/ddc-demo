@@ -1,0 +1,164 @@
+## ============================================================
+## ddc-client CI Pipeline — Harness.io
+##
+## 使用前需要替换以下占位符：
+##   <YOUR_ORG>         : Harness 组织 ID（Settings → Organization 里查看）
+##   <YOUR_PROJECT>     : Harness 项目 ID（项目设置里查看）
+##   <YOUR_REPO_CONNECTOR> : 代码仓库 Connector 名称（GitHub/GitLab Connector ID）
+##   <YOUR_DOCKER_CONNECTOR>: DockerHub Connector（用于拉取 maven 镜像）
+##                           如果用 Harness Cloud 内置镜像，可删除该字段
+##
+## 功能：
+##   1. Push ddc-client/src/** 时自动触发
+##   2. 构建 ddc-client → 运行 ddc-test 集成测试
+##   3. Harness Test Intelligence 只跑受影响用例
+##   4. JUnit XML 报告上传，Test Intelligence 持续学习
+##   5. Maven 依赖缓存（Cache Intelligence 自动处理）
+##   6. 失败时 Pipeline 标红，Test Intelligence Dashboard 展示趋势
+## ============================================================
+
+pipeline:
+  name: ddc-client CI
+  identifier: ddc_client_ci
+  orgIdentifier: <YOUR_ORG>
+  projectIdentifier: <YOUR_PROJECT>
+  description: "ddc-client 本地消息表中间件 — 自动化构建与 Test Intelligence"
+  tags:
+    component: ddc-client
+    type: ci
+
+  # ── 全局属性 ────────────────────────────────────────────────
+  properties:
+    ci:
+      codebase:
+        connectorRef: <YOUR_REPO_CONNECTOR>
+        repoName: ddc-project        # 仓库名（不含 owner）
+        build: <+input>              # 由 Trigger 注入分支/PR 信息
+
+  # ── 阶段定义 ────────────────────────────────────────────────
+  stages:
+
+    # ────────────────────────────────────────────────────────
+    # Stage 1: Build & Test
+    # ────────────────────────────────────────────────────────
+    - stage:
+        name: Build & Test
+        identifier: build_and_test
+        type: CI
+        spec:
+          cloneCodebase: true
+
+          # Harness Cloud 托管运行环境（无需自建 Runner）
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+
+          # Cache Intelligence：自动缓存 ~/.m2/repository，无需手写 Save/Restore 步骤
+          cacheIntelligence:
+            enabled: true
+
+          # ── 执行步骤 ──────────────────────────────────────
+          execution:
+            steps:
+
+              # ① 构建 ddc-client，安装到本地 Maven 仓库
+              #    ddc-test 在编译时需要 ddc-client 的 jar
+              - step:
+                  type: Run
+                  name: Build ddc-client
+                  identifier: build_ddc_client
+                  spec:
+                    connectorRef: <YOUR_DOCKER_CONNECTOR>
+                    image: maven:3.8.6-openjdk-8-slim
+                    command: |-
+                      echo "======== Build: ddc-client ========"
+                      mvn install \
+                        -pl ddc-client \
+                        -am \
+                        -DskipTests \
+                        -q \
+                        --no-transfer-progress
+                      echo "Build SUCCESS"
+                    # 超时 5 分钟
+                    resources:
+                      limits:
+                        memory: 1Gi
+                        cpu: "1"
+
+              # ② 集成测试 + Test Intelligence
+              #    runOnlySelectedTests: true  ← Test Intelligence 核心开关
+              #    Harness 分析本次 commit diff，只选取受影响的测试用例执行
+              - step:
+                  type: RunTests
+                  name: Integration Tests (TI)
+                  identifier: integration_tests_ti
+                  spec:
+                    connectorRef: <YOUR_DOCKER_CONNECTOR>
+                    image: maven:3.8.6-openjdk-8-slim
+                    language: Java
+                    buildTool: Maven
+                    # mvn test -pl ddc-test
+                    args: test -pl ddc-test --no-transfer-progress
+                    # Test Intelligence：只跑受影响用例
+                    runOnlySelectedTests: true
+                    # 扫描 JUnit 4 的 @Test 注解
+                    testAnnotations: "org.junit.Test,org.junit.Before,org.junit.After"
+                    # 限定扫描的包（加速用例发现）
+                    packages: "ddctest"
+                    # 测试执行前：导出 Maven 日志详细模式，方便排查
+                    preCommand: |-
+                      export MAVEN_OPTS="-Xmx512m"
+                      echo "======== Integration Tests: ddc-test ========"
+                    # JUnit XML 报告路径（Harness 读取后更新 TI 模型）
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "ddc-test/target/surefire-reports/*.xml"
+                    resources:
+                      limits:
+                        memory: 1Gi
+                        cpu: "1"
+
+              # ③ （可选）发布测试报告为构件，方便历史查阅
+              - step:
+                  type: Run
+                  name: Archive Test Report
+                  identifier: archive_test_report
+                  when:
+                    stageStatus: All   # 无论成功失败都执行
+                  spec:
+                    connectorRef: <YOUR_DOCKER_CONNECTOR>
+                    image: alpine:3.18
+                    command: |-
+                      echo "=== Test Summary ==="
+                      SUREFIRE="ddc-test/target/surefire-reports"
+                      if [ -d "$SUREFIRE" ]; then
+                        grep -h "Tests run" "$SUREFIRE"/*.txt 2>/dev/null || echo "No reports found"
+                      fi
+
+        # ── 失败策略 ──────────────────────────────────────────
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
+
+  # ── Pipeline 级通知（可选）────────────────────────────────────
+  # 在 Harness UI → Notifications 配置 Slack / Email / DingTalk
+  # 下方为示例，需替换 Slack Webhook Connector
+  #
+  # notificationRules:
+  #   - name: Notify on Failure
+  #     identifier: notify_on_failure
+  #     pipelineEvents:
+  #       - type: PipelineFailed
+  #     notificationMethod:
+  #       type: Slack
+  #       spec:
+  #         userGroups: []
+  #         webhookUrl: <YOUR_SLACK_WEBHOOK>

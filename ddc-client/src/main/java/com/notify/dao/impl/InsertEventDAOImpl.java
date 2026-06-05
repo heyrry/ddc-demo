@@ -59,7 +59,7 @@ public class InsertEventDAOImpl extends AbstractEventDAO {
     }
 
     private Object[] parseInsertParams(EventDO event) {
-        return new Object[] {event.getGmtEvent(), event.getGmtModified(), event.getDomain(), event.getEntityId(), event.getEvent(), event.getGmtEvent(), event.getEventContext(), event.getState(), event.getNotifyType(), event.getGmtNotify(),
+        return new Object[] {event.getGmtCreate(), event.getGmtModified(), event.getDomain(), event.getEntityId(), event.getEvent(), event.getGmtEvent(), event.getEventContext(), event.getState(), event.getNotifyType(), event.getGmtNotify(),
                 event.getNotifyId(), event.getNotifyResult(), event.getRetryTimes(), event.getVersion(), event.getLocalSend(), event.getRemoteSend()};
     }
 

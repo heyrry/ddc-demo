@@ -33,7 +33,8 @@ public interface EventDAO {
 
     /**
      * 查询未处理/处理失败事件
-     * @return
+     * @param delaySeconds 超过多少秒未处理才纳入补偿
+     * @param limit        单次最多返回条数
      */
-    List<EventDO> queryPendingEventList();
+    List<EventDO> queryPendingEventList(int delaySeconds, int limit);
 }

@@ -2,17 +2,29 @@ package com.listen.dao;
 
 import com.listen.dto.EventListenDO;
 
+import java.util.List;
+
 /**
  * @author baofeng
  * @date 2023/07/04
  */
 public interface EventListenDAO {
     /**
-     * 查询事件监听
-     *
-     * @return
+     * 查询事件监听（按 event_id）
      */
     EventListenDO queryEventListen(Long eventId);
+
+    /**
+     * 查询未处理完的监听记录（listen_result > 0 且超时）
+     * @param delaySeconds 超过多少秒未处理才纳入补偿
+     * @param limit        单次最多返回条数
+     */
+    List<EventListenDO> queryPendingEventListenList(int delaySeconds, int limit);
+
+    /**
+     * 递增重试次数
+     */
+    void incrementRetryTimes(Long id);
 
     /**
      * 保存事件监听

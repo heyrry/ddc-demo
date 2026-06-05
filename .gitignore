@@ -1,0 +1,19 @@
+# Maven
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & reports
+*.log
+ddc-harness.log
+ddc-test-report.txt

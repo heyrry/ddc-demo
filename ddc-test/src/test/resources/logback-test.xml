@@ -1,0 +1,18 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ddc 框架日志保留 INFO，减少干扰 -->
+    <logger name="com" level="INFO"/>
+    <logger name="ddctest" level="INFO"/>
+    <!-- Spring 事务日志调到 DEBUG 有助于排查问题，正常关闭 -->
+    <logger name="org.springframework.jdbc" level="WARN"/>
+    <logger name="org.springframework.transaction" level="WARN"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

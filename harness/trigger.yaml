@@ -1,0 +1,67 @@
+## ============================================================
+## ddc-client Push Trigger — Harness.io
+##
+## 触发条件：
+##   - 推送到 master 分支
+##   - 且变更文件包含 ddc-client/src/ 路径
+##
+## 使用前需替换：
+##   <YOUR_ORG>            : 同 pipeline.yaml
+##   <YOUR_PROJECT>        : 同 pipeline.yaml
+##   <YOUR_REPO_CONNECTOR> : 同 pipeline.yaml，必须与 Pipeline 使用相同 Connector
+##
+## 在 Harness UI 中导入方式：
+##   Pipeline → Triggers → + New Trigger → Import from YAML → 粘贴此文件
+## ============================================================
+
+trigger:
+  name: Push to ddc-client
+  identifier: push_ddc_client
+  enabled: true
+  orgIdentifier: <YOUR_ORG>
+  projectIdentifier: <YOUR_PROJECT>
+  # 绑定到 pipeline.yaml 里定义的 Pipeline
+  pipelineIdentifier: ddc_client_ci
+
+  # 注入的 Pipeline Input（对应 pipeline.yaml 中 build: <+input>）
+  inputYaml: |
+    pipeline:
+      identifier: ddc_client_ci
+      properties:
+        ci:
+          codebase:
+            build:
+              type: branch
+              spec:
+                branch: <+trigger.branch>
+
+  source:
+    type: Webhook
+    spec:
+      # 使用 GitHub Connector（若用 GitLab 改为 Gitlab）
+      type: Github
+      spec:
+        type: Push
+        spec:
+          connectorRef: <YOUR_REPO_CONNECTOR>
+          # 取消注释以启用自动取消同分支的旧构建
+          autoAbortPreviousExecutions: true
+
+          # ── 触发条件过滤 ──────────────────────────────────
+
+          # 只响应 master 分支的推送
+          payloadConditions:
+            - key: targetBranch
+              operator: Equals
+              value: master
+
+          # 只有 ddc-client/src/ 路径有变更时才触发
+          # 避免其他子模块的提交触发不必要的 CI
+          pathFilters:
+            - ddc-client/src/**
+
+          # （可选）排除纯文档变更
+          # headerConditions:
+          #   - key: X-GitHub-Event
+          #     operator: Equals
+          #     value: push

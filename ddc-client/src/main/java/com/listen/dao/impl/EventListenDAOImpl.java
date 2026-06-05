@@ -4,7 +4,6 @@ import com.listen.dao.EventListenDAO;
 import com.listen.dto.EventListenDO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,7 +30,9 @@ public class EventListenDAOImpl implements EventListenDAO {
     private static final String SELECT_RESULT_SQL = "select * from ddc_event_listen where event_id = ?";
     private static final String INSERT_RESULT_SQL = "insert into ddc_event_listen(gmt_create,gmt_modified,event_id,domain,event,event_content,msg_id,listen_names,listen_result,error_info,retry_times) values(?,?,?,?,?,?,?,?,?,?,?)";
     private static final String UPDATE_RESULT_SQL = "update ddc_event_listen set gmt_modified=now(),listen_result=listen_result-? where id=? and mod(listen_result,?)>=?";
-    private static final String UPDATE_ERROR_INFO_SQL = "update ddc_event_listen set gmt_modified=now(),error_info=? where id=?";
+    private static final String UPDATE_ERROR_INFO_SQL = "update ddc_event_listen set gmt_modified=now(),error_info=LEFT(CONCAT(IFNULL(error_info,''),?),2000) where id=?";
+    private static final String QUERY_PENDING_SQL = "select * from ddc_event_listen where listen_result > 0 and gmt_modified < date_sub(now(), interval ? second) limit ?";
+    private static final String INCREMENT_RETRY_SQL = "update ddc_event_listen set retry_times=retry_times+1,gmt_modified=now() where id=?";
 
     /**
      * 创建一个BeanPropertyRowMapper实例，用于属性映射
@@ -93,27 +94,30 @@ public class EventListenDAOImpl implements EventListenDAO {
 
     @Override
     public boolean updateErrorInfo(Long id, String errorInfo) {
-        if (StringUtils.isEmpty(errorInfo)) {
+        if (id == null || StringUtils.isEmpty(errorInfo)) {
             return false;
         }
+        // SQL 已通过 CONCAT(IFNULL(error_info,''), ?) 追加，并截断至 2000 字符
+        // 单次追加内容限制 500 字符，防止单条堆栈撑满字段
+        String truncated = StringUtils.abbreviate(errorInfo, 500);
         try {
-            EventListenDO eventListen = this.queryEventListen(id);
-            if (eventListen == null) {
-                return false;
-            }
-            // 错误信息进行拼装
-            String newErrorInfo = composeErrorInfo(eventListen.getErrorInfo(), errorInfo);
-            int result = jdbcTemplate.update(UPDATE_ERROR_INFO_SQL, new Object[] {newErrorInfo, id});
+            int result = jdbcTemplate.update(UPDATE_ERROR_INFO_SQL, "，" + truncated, id);
             return result > 0;
         } catch (Exception e) {
-            log.error("DomainEventListenServiceImpl updateErrorInfo error, id:{}, message:{}, error:{}", id.toString(), errorInfo, ExceptionUtils.getStackTrace(e));
+            log.error("updateErrorInfo error, id:{}, errorInfo:{}", id, errorInfo, e);
         }
         return false;
     }
 
-    private String composeErrorInfo (String oldErrorInfo, String errorInfo) {
-        // TODO 防止字符串过大，需要精简
-        return oldErrorInfo + "，" + errorInfo;
+    @Override
+    public List<EventListenDO> queryPendingEventListenList(int delaySeconds, int limit) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        return jdbcTemplate.query(QUERY_PENDING_SQL, rowMapper, delaySeconds, limit);
+    }
+
+    @Override
+    public void incrementRetryTimes(Long id) {
+        jdbcTemplate.update(INCREMENT_RETRY_SQL, id);
     }
 
     public void setDataSource(DataSource dataSource) {

@@ -25,7 +25,7 @@ public abstract class AbstractEventDAO implements EventDAO {
     }
 
     @Override
-    public List<EventDO> queryPendingEventList() {
+    public List<EventDO> queryPendingEventList(int delaySeconds, int limit) {
         throw new UnsupportedOperationException("queryPendingEventList");
     }
 

@@ -13,9 +13,7 @@ import spi.pointcut.PointcutInstance;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * @author baofeng
@@ -70,35 +68,33 @@ public class MyDataSourceTransactionManager extends DataSourceTransactionManager
     public void doCommit(DefaultTransactionStatus status) {
         log.info("MyDataSourceTransactionManager doCommit begin" + status.toString());
         PointcutInstance pointcutInstance = PointcutManager.getPointcutInstance();
-        try {
-            pointcutInstance.createEvent();
-        } catch (Throwable e) {
-            //回滚
-            doRollback(status);
-            log.error("DdcConnection createEvent error", e);
-            if (e instanceof SQLException) {
+        if (pointcutInstance != null) {
+            try {
+                pointcutInstance.createEvent();
+            } catch (Throwable e) {
+                doRollback(status);
+                log.error("DdcConnection createEvent error", e);
                 throw e;
             }
-            throw e;
         }
         super.doCommit(status);
-        pointcutInstance.onSubmitted();
+        if (pointcutInstance != null) {
+            pointcutInstance.onSubmitted();
+        }
         log.info("MyDataSourceTransactionManager doCommit end");
     }
 
     @Override
     public void doRollback(DefaultTransactionStatus status) {
-        if (log.isDebugEnabled()) {
-            log.debug("DdcConnection rollback start...");
-        }
         log.info("MyDataSourceTransactionManager doRollback begin" + status.toString());
         super.doRollback(status);
         PointcutInstance pointcutInstance = PointcutManager.getPointcutInstance();
-        //回滚完成
-        try {
-            pointcutInstance.onRolledBack();
-        } catch (Throwable e) {
-            logger.error("DdcConnection onRolledBack error", e);
+        if (pointcutInstance != null) {
+            try {
+                pointcutInstance.onRolledBack();
+            } catch (Throwable e) {
+                log.error("DdcConnection onRolledBack error", e);
+            }
         }
         log.info("MyDataSourceTransactionManager doRollback end");
     }
