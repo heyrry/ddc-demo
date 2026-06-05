@@ -26,3 +26,4 @@ public interface NotifyService {
      */
     Result<String> send(NotifyDTO notifyDTO);
 }
+
