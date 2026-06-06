@@ -174,15 +174,16 @@ public class DdcIntegrationTest {
 
     @Test
     public void TC06_补偿任务_pending事件被重新投递() throws Exception {
-        // 直接插入一条 state=pending 的事件（模拟进程崩溃后遗留的消息）
+        // 直接插入一条 state=pending 的事件，gmt_event 设为 600 秒前
+        // 避免与 date_sub(now(), interval 300 second) 的边界条件冲突
         jdbc.update(
             "INSERT INTO ddc_event(gmt_create,gmt_modified,gmt_event,domain,entity_id,event," +
             "                      state,retry_times,version,event_context) " +
-            "VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP," +
+            "VALUES(CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,DATEADD(SECOND,-600,CURRENT_TIMESTAMP)," +
             "       'order','TC06','paid','pending',0,1,'{\"entityId\":\"TC06\"}')");
 
-        // 使用 delaySeconds=0 触发立即补偿（不等超时窗口）
-        DdcCompensateService compensate = new DdcCompensateServiceImpl(dataSource, 0, 10);
+        // delaySeconds=300：查找 300 秒前的 pending 事件，600s 前的记录满足条件
+        DdcCompensateService compensate = new DdcCompensateServiceImpl(dataSource, 300, 10);
         compensate.compensateNotify();
 
         // 等待补偿异步执行完成

@@ -20,7 +20,7 @@ import java.util.List;
 public class EventDAOImpl extends AbstractEventDAO {
 
     private static final String UPDATE_EVENT_BY_NOTIFY_SQL = "update ddc_event set gmt_modified=now(),state=?,notify_type=?,notify_id=?,notify_result=?,version=version+1 where id=? and version=?";
-    private static final String QUERY_PENDING_SQL = "select * from ddc_event where state in ('pending','failed') and gmt_event < date_sub(now(), interval ? second) limit ?";
+    private static final String QUERY_PENDING_SQL = "select * from ddc_event where state in ('pending','failed') and gmt_event < TIMESTAMPADD(SECOND, -?, NOW()) limit ?";
 
     private DataSource dataSource;
     protected Connection connection;

@@ -49,7 +49,9 @@ public class EventListenHandlerImpl implements EventListenHandler {
             callback.onHandleAfterSuccess();
         } catch (Exception e) {
             log.error("EventListenHandlerImpl handle0 execute error,dto:{}", dto, e);
-            callback.onHandleAfterFail(e.getMessage());
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getName();
+            callback.onHandleAfterFail(msg);
         }
 
     }

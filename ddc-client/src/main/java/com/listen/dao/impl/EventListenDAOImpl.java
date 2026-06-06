@@ -31,7 +31,7 @@ public class EventListenDAOImpl implements EventListenDAO {
     private static final String INSERT_RESULT_SQL = "insert into ddc_event_listen(gmt_create,gmt_modified,event_id,domain,event,event_content,msg_id,listen_names,listen_result,error_info,retry_times) values(?,?,?,?,?,?,?,?,?,?,?)";
     private static final String UPDATE_RESULT_SQL = "update ddc_event_listen set gmt_modified=now(),listen_result=listen_result-? where id=? and mod(listen_result,?)>=?";
     private static final String UPDATE_ERROR_INFO_SQL = "update ddc_event_listen set gmt_modified=now(),error_info=LEFT(CONCAT(IFNULL(error_info,''),?),2000) where id=?";
-    private static final String QUERY_PENDING_SQL = "select * from ddc_event_listen where listen_result > 0 and gmt_modified < date_sub(now(), interval ? second) limit ?";
+    private static final String QUERY_PENDING_SQL = "select * from ddc_event_listen where listen_result > 0 and gmt_modified < TIMESTAMPADD(SECOND, -?, NOW()) limit ?";
     private static final String INCREMENT_RETRY_SQL = "update ddc_event_listen set retry_times=retry_times+1,gmt_modified=now() where id=?";
 
     /**
